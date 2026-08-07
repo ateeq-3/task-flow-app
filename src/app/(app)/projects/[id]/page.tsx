@@ -15,52 +15,21 @@ import { Board } from './Board';
  */
 type PageProps = { params: Promise<{ id: string }> };
 
-/* ===========================================================================
- * TODO 8 — the three Next.js conventions
+/**
+ * TODO 9 — runs on the server before the page renders, and its result becomes
+ * real <title> and <meta> tags in the HTML.
  *
- * (a) generateMetadata, here in this file
- *
- *       export async function generateMetadata({ params }: PageProps) {
- *         const { id } = await params;
- *         const supabase = await createClient();
- *         const project = await fetchProject(supabase, id);
- *         return { title: project?.name ?? 'Project' };
- *       }
- *
- *     It runs on the server before the page renders, and its result becomes
- *     real <title> and <meta> tags in the HTML. That is what Google and
- *     WhatsApp link previews read — something a client-side SPA cannot do
- *     without extra machinery.
- *
- * (b) A new file: src/app/(app)/projects/[id]/loading.tsx
- *
- *       import { BoardSkeleton } from '@/components/ui';
- *       export default function Loading() {
- *         return <BoardSkeleton />;
- *       }
- *
- *     Put a file called loading.tsx in a folder and Next wraps that route in
- *     <Suspense> for you. No configuration, no boilerplate. There is already
- *     one in the parent folder — go and look at it.
- *
- * (c) A new file: src/app/(app)/projects/[id]/error.tsx
- *
- *       'use client';                       ← NOT OPTIONAL
- *       import { ErrorPanel } from '@/components/ui';
- *       export default function ProjectError({
- *         error, reset,
- *       }: { error: Error & { digest?: string }; reset: () => void }) {
- *         return <ErrorPanel message={error.message} onRetry={reset} />;
- *       }
- *
- *     A file called error.tsx turns the route into an error boundary. It MUST
- *     be a client component — error boundaries rely on lifecycle behaviour
- *     that only exists in the browser. Everybody forgets this once. Better
- *     here than in production.
- *
- *     Test it: break the query on purpose (`.from('projects_typo')`), see the
- *     error UI, click Try again, fix it, watch it recover.
- * =========================================================================== */
+ * That is what Google and WhatsApp link previews read. A client-side SPA
+ * cannot do this without extra machinery.
+ */
+export async function generateMetadata({ params }: PageProps) {
+  const { id } = await params;
+
+  const supabase = await createClient();
+  const project = await fetchProject(supabase, id);
+
+  return { title: project?.name ?? 'Project' };
+}
 
 export default async function ProjectPage({ params }: PageProps) {
   const { id } = await params;
@@ -74,7 +43,7 @@ export default async function ProjectPage({ params }: PageProps) {
 
   // Null means either "no such project" or "RLS said no". Both are a 404 as
   // far as the visitor is concerned — never leak the difference, or you have
-  // just told an attacker that the id exists.
+  // told an attacker that the id exists.
   if (!project || !user) notFound();
 
   return (
@@ -90,9 +59,9 @@ export default async function ProjectPage({ params }: PageProps) {
       </div>
 
       {/*
-        This page is a server component; only these two children are client
-        components. The board's data is fetched in the browser by TanStack
-        Query so that it can be cached, refetched and mutated.
+        The page is a server component; only these two children are client
+        components. The data for the board is fetched in the browser by
+        TanStack Query so that it can be cached, refetched and mutated.
       */}
       <TaskForm projectId={project.id} userId={user.id} />
       <Board projectId={project.id} />
